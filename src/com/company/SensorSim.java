@@ -6,7 +6,7 @@ public class SensorSim
 {
     private SensorSim()
     {
-        DisplayManager dm = new DisplayManager(1100, 600);
+        DisplayManager dm = new DisplayManager();
     }
 
     public static void main(String[] args)

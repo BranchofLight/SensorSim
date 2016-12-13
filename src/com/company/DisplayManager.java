@@ -2,9 +2,10 @@ package com.company;
 
 import javax.swing.*;
 
+// Manages any metadata for the display such as the UI style to use
 public class DisplayManager
 {
-    public DisplayManager(int width, int height)
+    public DisplayManager()
     {
         try
         {

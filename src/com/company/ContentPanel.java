@@ -8,11 +8,11 @@ import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.ComponentEvent;
-import java.awt.event.ComponentListener;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Random;
 
+// The main JFrame of the application
 public class ContentPanel extends JFrame
 {
     public ContentPanel()
@@ -70,7 +70,7 @@ public class ContentPanel extends JFrame
             {
                 // I apologize in advance for how ugly this conversion is.
                 // It converts the source to a JSpinner, converts the value of the JSpinner to a string,
-                // then to a double then to an integer.
+                // then to a double, then to an integer.
                 int numOfSensors = Double.valueOf(((JSpinner) (e.getSource())).getValue().toString()).intValue();
                 if (numOfSensors < listOfSensors.size())
                 {
@@ -83,7 +83,6 @@ public class ContentPanel extends JFrame
                 else if (numOfSensors > listOfSensors.size())
                 {
                     int actualNumOfSensors = listOfSensors.size();
-                    Random rand = new Random();
                     for (int i = 0; i < numOfSensors-actualNumOfSensors; i++)
                     {
                         addSensor(Double.valueOf(diameterSpinner.getValue().toString()).intValue());
@@ -113,26 +112,6 @@ public class ContentPanel extends JFrame
         });
         cpanel.add(startButton, "height 10%, grow, span 4, wrap");
 
-        simPanel.addComponentListener(new ComponentListener()
-        {
-            @Override
-            public void componentResized(ComponentEvent e)
-            {
-                int vertCenter = 0;
-                for (SensorPanel sensor : listOfSensors)
-                {
-                    vertCenter = simPanel.getHeight()/2-sensor.getHeight()/2;
-                    sensor.setBounds(sensor.getX(), vertCenter, sensor.getWidth(), sensor.getHeight());
-                }
-            }
-
-            @Override
-            public void componentMoved(ComponentEvent e) {}
-            @Override
-            public void componentShown(ComponentEvent e) {}
-            @Override
-            public void componentHidden(ComponentEvent e) {}
-        });
         cpanel.add(simPanel, "height 80%, grow, span 4, wrap");
 
         JScrollPane logScroll = new JScrollPane(logOutput);
@@ -146,13 +125,16 @@ public class ContentPanel extends JFrame
         addSensor(Double.valueOf(diameterSpinner.getValue().toString()).intValue());
     }
 
-    // heuristicID is based on the order of the comboBox
-    // 0: Simple Coverage
-    // 1: Rigid Routing
+    /*
+     * For simulating a chosen heuristic
+     * @param {JTextArea} logOutput - for outputting to the right docked console in the UI
+     * @param {double} rawDiameter - the unmodified sensor diameter
+     * @param {int} heuristicID - the heuristic to simulate (based on comboBox index)
+     */
     private void completeHeuristic(JTextArea logOutput, double rawDiameter, int heuristicID)
     {
         // Check if heuristicID is valid
-        if (heuristicID < 0 || heuristicID > 2)
+        if (heuristicID < 0 || heuristicID > 1)
         {
             return;
         }
@@ -171,6 +153,7 @@ public class ContentPanel extends JFrame
 
         addLogText(logOutput, "Diameter: " + diameter);
         addLogText(logOutput, "Sensors:");
+        Collections.sort(vertices);
         for (int i = 0; i < vertices.size(); i++)
         {
             addLogText(logOutput, "[" + i + "]: " + vertices.get(i));
@@ -180,6 +163,7 @@ public class ContentPanel extends JFrame
         ArrayList<Double> newVertices = new ArrayList();
         double result = 0;
 
+        // Simulation of heuristic itself
         switch (heuristicID)
         {
             // Simple Coverage
@@ -200,9 +184,6 @@ public class ContentPanel extends JFrame
                 result = rr.getTotalDistanceMoved();
 
                 break;
-
-            case 2:
-
         }
 
         if (newVertices.size() != listOfSensors.size())
@@ -225,6 +206,10 @@ public class ContentPanel extends JFrame
         addLogText(logOutput, "Result: " + result);
     }
 
+    /*
+     * Adds a sensor to the simPanel
+     * @param {int} diameter - the diameter of the added sensor
+     */
     private void addSensor(int diameter)
     {
         Random rand = new Random();
@@ -245,17 +230,29 @@ public class ContentPanel extends JFrame
         sensor.setBounds(x*50, vertCenter, size.width, size.height);
     }
 
+    /*
+     * Moves the given sensor to the new x location
+     * @param {SensorPanel} sensor - the sensor to move
+     * @param {double} xLoc - the new location of the sensor
+     */
     private void moveSensor(SensorPanel sensor, double xLoc)
     {
         int vertCenter = simPanel.getHeight()/2-sensor.getHeight()/2;
+        // Debug printlns
         System.out.println("Old x: " + sensor.getXLoc());
         System.out.println("New x: " + xLoc);
         System.out.println("New Visual X: " + (((Double) (xLoc * 500.0d)).intValue()));
         System.out.println("------------------");
+
         sensor.setXLoc(xLoc);
         sensor.setBounds(((Double) (xLoc * 500.0d)).intValue(), vertCenter, sensor.getWidth(), sensor.getHeight());
     }
 
+    /*
+     * Prints the given String in the logging area
+     * @param {JTextArea} log - the log to print to
+     * @param {String} str - the message to print
+     */
     private void addLogText(JTextArea log, String str)
     {
         String newLine = (log.getText().isEmpty()) ? "" : "\n";
