@@ -148,7 +148,6 @@ public class ContentPanel extends JFrame
         {
             // Gets XLoc inside of actual domain [0, 1]
             vertices.add(sensor.getXLoc());
-            addLogText(logOutput, "Sensor at: " + sensor.getXLoc());
         }
 
         addLogText(logOutput, "Diameter: " + diameter);
