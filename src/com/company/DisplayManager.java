@@ -24,6 +24,6 @@ public class DisplayManager
             System.out.println(e.toString());
         }
 
-        ContentPanel cpanel = new ContentPanel(width, height);
+        ContentPanel cpanel = new ContentPanel();
     }
 }

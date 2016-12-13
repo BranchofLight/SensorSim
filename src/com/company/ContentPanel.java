@@ -1,13 +1,13 @@
 package com.company;
 
 import net.miginfocom.swing.MigLayout;
-import sun.management.Sensor;
 
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
-import javax.swing.text.DefaultCaret;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ComponentListener;
 import java.util.ArrayList;
@@ -15,25 +15,26 @@ import java.util.Random;
 
 public class ContentPanel extends JFrame
 {
-    public ContentPanel(int width, int height)
+    public ContentPanel()
     {
         this.setLayout(new MigLayout());
-        this.setSize(new Dimension(width, height));
+        this.setSize(new Dimension(750, 500));
+        this.setResizable(false);
         this.setLocationRelativeTo(null);
         this.setTitle("Sensor Sim");
 
-        JPanel simPanel = new JPanel(null);
+        simPanel = new JPanel(null);
         listOfSensors = new ArrayList<>();
 
-        JPanel cpanel = new JPanel(new MigLayout("fillx"));
+        JPanel cpanel = new JPanel(new MigLayout());
         this.add(cpanel, "width 100%, height 100%");
 
-        JLabel radiusLabel = new JLabel("Radius", SwingConstants.RIGHT);
-        radiusLabel.setBorder(BorderFactory.createLineBorder(Color.black));
-        cpanel.add(radiusLabel, "height 10%, grow, width 18%");
+        JLabel diameterLabel = new JLabel("Diameter", SwingConstants.RIGHT);
+        diameterLabel.setBorder(BorderFactory.createLineBorder(Color.black));
+        cpanel.add(diameterLabel, "height 10%, width 160px");
 
-        JSpinner radiusSpinner = new JSpinner(new SpinnerNumberModel(10.0, 0.1, 200.0, 5.0));
-        radiusSpinner.addChangeListener(new ChangeListener()
+        JSpinner diameterSpinner = new JSpinner(new SpinnerNumberModel(50.0, 50.0, 500.0, 50.0));
+        diameterSpinner.addChangeListener(new ChangeListener()
         {
             @Override
             public void stateChanged(ChangeEvent e)
@@ -51,17 +52,17 @@ public class ContentPanel extends JFrame
                 simPanel.repaint();
             }
         });
-        cpanel.add(radiusSpinner, "height 10%, grow, width 18%");
+        cpanel.add(diameterSpinner, "height 10%, width 160px");
 
         JLabel sensorLabel = new JLabel("Sensors", SwingConstants.RIGHT);
         sensorLabel.setBorder(BorderFactory.createLineBorder(Color.black));
-        cpanel.add(sensorLabel, "height 10%, grow, width 18%");
+        cpanel.add(sensorLabel, "height 10%, width 160px");
 
         // Initialized here for use in sensorSpinner's listener
         JTextArea logOutput = new JTextArea();
         logOutput.setEditable(false);
 
-        JSpinner sensorSpinner = new JSpinner(new SpinnerNumberModel(1.0, 1.0, 100.0, 1.0));
+        JSpinner sensorSpinner = new JSpinner(new SpinnerNumberModel(1, 1, 50, 1));
         sensorSpinner.addChangeListener(new ChangeListener()
         {
             @Override
@@ -77,7 +78,6 @@ public class ContentPanel extends JFrame
                     for (int i = 0; i < actualNumOfSensors-numOfSensors; i++)
                     {
                         simPanel.remove(listOfSensors.remove(listOfSensors.size()-1));
-                        addLogText(logOutput, "Removed sensor: [" + listOfSensors.size() + "]");
                     }
                 }
                 else if (numOfSensors > listOfSensors.size())
@@ -86,25 +86,32 @@ public class ContentPanel extends JFrame
                     Random rand = new Random();
                     for (int i = 0; i < numOfSensors-actualNumOfSensors; i++)
                     {
-                        addSensor(simPanel, Double.valueOf(radiusSpinner.getValue().toString()).intValue());
-                        addLogText(logOutput, "Added sensor: [" + listOfSensors.size() + "]");
+                        addSensor(Double.valueOf(diameterSpinner.getValue().toString()).intValue());
                     }
                 }
 
                 simPanel.repaint();
             }
         });
-        cpanel.add(sensorSpinner, "height 10%, grow, width 18%, wrap");
+        cpanel.add(sensorSpinner, "height 10%, width 160px, wrap");
 
         JLabel heuristicLabel = new JLabel("Heuristic", SwingConstants.RIGHT);
         heuristicLabel.setBorder(BorderFactory.createLineBorder(Color.black));
-        cpanel.add(heuristicLabel, "height 10%, grow, width 18%");
+        cpanel.add(heuristicLabel, "height 10%, grow, span 2");
 
-        JComboBox heuristicCombo = new JComboBox();
-        cpanel.add(heuristicCombo, "height 10%, span 3, grow, wrap");
+        JComboBox heuristicCombo = new JComboBox(new Object[]{"Simple Coverage", "Rigid Routing"});
+        cpanel.add(heuristicCombo, "height 10%, grow, span 2, wrap");
 
         JButton startButton = new JButton("Simulate");
-        cpanel.add(startButton, "height 10%, spanx, grow, wrap");
+        startButton.addActionListener(new ActionListener()
+        {
+            @Override
+            public void actionPerformed(ActionEvent e)
+            {
+                completeHeuristic(logOutput, (Double) diameterSpinner.getValue(), heuristicCombo.getSelectedIndex());
+            }
+        });
+        cpanel.add(startButton, "height 10%, grow, span 4, wrap");
 
         simPanel.addComponentListener(new ComponentListener()
         {
@@ -126,20 +133,99 @@ public class ContentPanel extends JFrame
             @Override
             public void componentHidden(ComponentEvent e) {}
         });
-        cpanel.add(simPanel, "spanx, height 80%, grow, wrap");
+        cpanel.add(simPanel, "height 80%, grow, span 4, wrap");
 
         JScrollPane logScroll = new JScrollPane(logOutput);
-        cpanel.add(logScroll, "dock east, width 25%, height 100%");
+        cpanel.add(logScroll, "dock east, width 250px, height 100%");
 
         this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         this.setVisible(true);
 
         // Sensors must be added after all sizes are calculated.
         // Add one sensor since the JSpinner for sensors will default at 1.
-        addSensor(simPanel, Double.valueOf(radiusSpinner.getValue().toString()).intValue());
+        addSensor(Double.valueOf(diameterSpinner.getValue().toString()).intValue());
     }
 
-    private void addSensor(JPanel simPanel, int diameter)
+    // heuristicID is based on the order of the comboBox
+    // 0: Simple Coverage
+    // 1: Rigid Routing
+    private void completeHeuristic(JTextArea logOutput, double rawDiameter, int heuristicID)
+    {
+        // Check if heuristicID is valid
+        if (heuristicID < 0 || heuristicID > 2)
+        {
+            return;
+        }
+
+        // Used to create a usable scaled value from the UI value
+        double UIModifier = 500;
+        double diameter = rawDiameter/UIModifier;
+
+        ArrayList<Double> vertices = new ArrayList();
+        for (SensorPanel sensor : listOfSensors)
+        {
+            // Gets XLoc inside of actual domain [0, 1]
+            vertices.add(sensor.getXLoc());
+            addLogText(logOutput, "Sensor at: " + sensor.getXLoc());
+        }
+
+        addLogText(logOutput, "Diameter: " + diameter);
+        addLogText(logOutput, "Sensors:");
+        for (int i = 0; i < vertices.size(); i++)
+        {
+            addLogText(logOutput, "[" + i + "]: " + vertices.get(i));
+        }
+        addLogText(logOutput, "-----------");
+
+        ArrayList<Double> newVertices = new ArrayList();
+        double result = 0;
+
+        switch (heuristicID)
+        {
+            // Simple Coverage
+            case 0:
+                SimpleCoverage sc = new SimpleCoverage(vertices, diameter);
+                sc.rGreaterL();
+
+                newVertices.addAll(sc.getDoubleVertices());
+                result = sc.getSumDoubleDistance();
+
+                break;
+
+            // Rigid Routing
+            case 1:
+                RigidRouting rr = new RigidRouting(vertices, diameter);
+
+                newVertices.addAll(rr.rigidRouting());
+                result = rr.getTotalDistanceMoved();
+
+                break;
+
+            case 2:
+
+        }
+
+        if (newVertices.size() != listOfSensors.size())
+        {
+            System.out.println("Lists are different sizes!");
+        }
+
+        for (int i = 0; i < listOfSensors.size(); i++)
+        {
+            moveSensor(listOfSensors.get(i), newVertices.get(i));
+        }
+
+        addLogText(logOutput, "After movement:");
+        for (int i = 0; i < newVertices.size(); i++)
+        {
+            addLogText(logOutput, "[" + i + "]: " + newVertices.get(i));
+        }
+        addLogText(logOutput, "-----------");
+
+        addLogText(logOutput, "Result: " + result);
+    }
+
+    private void addSensor(int diameter)
     {
         Random rand = new Random();
 
@@ -150,8 +236,24 @@ public class ContentPanel extends JFrame
         Dimension size = sensor.getPreferredSize();
 
         int vertCenter = simPanel.getHeight()/2-size.height/2;
-        int x = rand.nextInt(simPanel.getWidth()-(sensor.getDiameter()+1));
-        sensor.setBounds(x, vertCenter, size.width, size.height);
+        // Only 10 options in the real domain [0, 1]
+        // Visual domain is [0, ~500)
+        int x = rand.nextInt(10) + 1; // [1, 10]
+        // Sets the actual x location based on the actual domain
+        sensor.setXLoc(x/10.0d);
+        // Multiply the x option so that it can cover entire visual domain
+        sensor.setBounds(x*50, vertCenter, size.width, size.height);
+    }
+
+    private void moveSensor(SensorPanel sensor, double xLoc)
+    {
+        int vertCenter = simPanel.getHeight()/2-sensor.getHeight()/2;
+        System.out.println("Old x: " + sensor.getXLoc());
+        System.out.println("New x: " + xLoc);
+        System.out.println("New Visual X: " + (((Double) (xLoc * 500.0d)).intValue()));
+        System.out.println("------------------");
+        sensor.setXLoc(xLoc);
+        sensor.setBounds(((Double) (xLoc * 500.0d)).intValue(), vertCenter, sensor.getWidth(), sensor.getHeight());
     }
 
     private void addLogText(JTextArea log, String str)
@@ -161,4 +263,6 @@ public class ContentPanel extends JFrame
     }
 
     private ArrayList<SensorPanel> listOfSensors;
+
+    private JPanel simPanel;
 }

@@ -5,6 +5,8 @@ import net.miginfocom.swing.MigLayout;
 import javax.swing.*;
 import java.awt.*;
 
+import static jdk.nashorn.internal.objects.NativeMath.round;
+
 public class SensorPanel extends JPanel
 {
     public SensorPanel(int diameter)
@@ -29,7 +31,12 @@ public class SensorPanel extends JPanel
         this.diameter = newDiameter;
     }
 
+    public void setXLoc(double xLoc) { this.xLoc = xLoc; }
+
+    public double getXLoc() { return xLoc; }
+
     public int getDiameter() { return diameter; }
 
     private int diameter;
+    private double xLoc;
 }
